@@ -1,0 +1,327 @@
+/* DRISHTI Global Styles + Legacy Support */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+:root {
+  --primary-bg:#ffffff; --secondary-bg:#f9fafb; --accent-blue:#2563eb; --accent-blue-hover:#1d4ed8; --danger-red:#dc2626; --text-primary:#0a0a0a; --text-secondary:#6b7280; --text-light-gray:#9ca3af; --border-gray:#e5e7eb;
+}
+body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--primary-bg); color:var(--text-primary); line-height:1.6; -webkit-font-smoothing:antialiased; }
+::-webkit-scrollbar{ width:10px;}::-webkit-scrollbar-track{background:var(--secondary-bg);}::-webkit-scrollbar-thumb{background:var(--accent-blue);border-radius:5px;}::-webkit-scrollbar-thumb:hover{background:var(--accent-blue-hover);} 
+.container { max-width:1400px; margin:0 auto; padding:0 24px; }
+section { padding:80px 0; }
+.landing-page, .about-page, .team-page { background:#fff; }
+
+/* Re-styled legacy structural classes */
+.main-container { padding-top:90px; padding-bottom:80px; min-height:100vh; }
+.grid { display:grid; gap:24px; }
+.video-grid { display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); }
+.card { background:#ffffff; border:1px solid var(--border-gray); border-radius:20px; padding:28px 32px; box-shadow:0 4px 20px rgba(0,0,0,0.05); }
+.card h2, .card h3 { margin-top:0; line-height:1.2; }
+.badge { background:rgba(37,99,235,0.08); color:var(--accent-blue); padding:6px 14px; border-radius:999px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+.status-bar { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 24px; }
+.btn-row { display:flex; gap:12px; flex-wrap:wrap; }
+button { cursor:pointer; font-family:inherit; font-weight:600; }
+button { background:var(--accent-blue); color:#fff; border:none; padding:10px 18px; border-radius:10px; font-size:14px; box-shadow:0 2px 6px rgba(37,99,235,0.25); transition:.25s; }
+button:hover { background:var(--accent-blue-hover); }
+button.secondary { background:#ffffff; color:var(--text-secondary); border:2px solid var(--border-gray); box-shadow:none; }
+button.secondary:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+
+/* Add/update these styles */
+.grid {
+  display: grid;
+  width: 100%;
+  max-width: 100vw;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.layout-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  overflow: hidden;
+}
+
+.video-tile {
+  width: 100%;
+  min-width: 0; /* Prevents grid item overflow */
+}
+
+/* ===== LANDING PAGE FULL WIDTH STYLES ===== */
+.landing-page-full {
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100vh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+/* Override container for landing page sections */
+.landing-page-full .container {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+/* Make hero full width */
+.landing-page-full .hero-section {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+  margin: 0;
+}
+
+.landing-page-full .hero-container {
+  max-width: 1400px;
+  width: 100%;
+  padding: 0 24px;
+  margin: 0 auto;
+}
+
+/* Full width sections */
+.landing-page-full section {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+  margin: 0;
+}
+
+/* Center content inside sections but keep background full */
+.landing-page-full section > div:not(.hero-container),
+.landing-page-full section > .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Section wrappers with full-width backgrounds */
+.hero-wrapper,
+.problem-wrapper,
+.highlights-wrapper,
+.cta-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-wrapper {
+  background: #ffffff;
+}
+
+.problem-wrapper {
+  background: #f9fafb;
+}
+
+.highlights-wrapper {
+  background: #ffffff;
+}
+
+.cta-wrapper {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+/* Responsive padding */
+@media (max-width: 1024px) {
+  .landing-page-full .hero-container,
+  .landing-page-full section > div,
+  .landing-page-full section > .container {
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-page-full .hero-container,
+  .landing-page-full section > div,
+  .landing-page-full section > .container {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-page-full .hero-container,
+  .landing-page-full section > div,
+  .landing-page-full section > .container {
+    padding: 0 12px;
+  }
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+/* Stream / video tiles */
+.video-tile { background:#ffffff; border:1px solid var(--border-gray); border-radius:16px; padding:14px; box-shadow:0 2px 12px rgba(150, 147, 147, 0.04); }
+.video-tile h4 { margin:0 0 10px; font-size:14px; font-weight:600; color:var(--text-secondary); }
+
+/* Alerts */
+.alert { padding:12px 16px; background:rgba(255,255,255,0.18); border:1px solid rgba(37,99,235,0.25); border-radius:12px; font-size:13px; }
+.success { border-color:#10b981 !important; background:rgba(16,185,129,0.08) !important; }
+
+/* Footer placeholder when legacy footer used */
+.footer { margin-top:80px; padding:40px 0 30px; text-align:center; font-size:12px; color:var(--text-secondary); }
+
+/* Utility */
+.layout-split { display:grid; gap:24px; grid-template-columns:2fr 1fr; }
+@media (max-width:1100px){ .layout-split { grid-template-columns:1fr; } }
+.hidden { display:none !important; }
+
+/* Import component specific styles (kept in same file for simplicity) */
+/* Navbar, Hero, ProblemSolution, KeyHighlights, CTA, About, Team, Footer styles inserted from DRISHTI bundle via separate files in original project. For brevity not duplicating entire content here; rely on component CSS imports below if needed. */
+
+/* === NORMALIZATION & BASE TWEAKS === */
+html { font-size:16px; }
+body { line-height:1.55; }
+@media (min-width:1600px){ body { font-size:15px; } }
+:focus-visible { outline:2px solid var(--accent-blue); outline-offset:2px; border-radius:4px; }
+img { max-width:100%; height:auto; display:block; }
+
+/* Unified Section Spacing */
+section { padding:72px 0; }
+@media (max-width:900px){ section { padding:60px 0; } }
+@media (max-width:640px){ section { padding:50px 0; } }
+
+/* Container tighten on very wide */
+.container { max-width:1600px; }
+
+/* Active link style */
+.nav-link.active { background:rgba(255,255,255,0.18); color:#fff; }
+.mobile-nav-link.active { background:rgba(255,255,255,0.18); color:#fff; }
+
+/* Compact navbar on scroll (already hide/show) */
+.navbar-pimeyes { will-change:transform; backdrop-filter:saturate(1.2) blur(8px); }
+
+/* HERO Section (from original Hero.css refined) */
+.hero-section { position:relative; min-height:85vh; display:flex; align-items:center; background:#fff; overflow:hidden; padding-top:90px; }
+.hero-container { width:100%; }
+
+/* === ADDITIONAL NORMALIZATION & PROFESSIONAL UI ENHANCEMENTS === */
+html { font-size:15px; }
+@media (max-width:1400px){ html { font-size:14.75px; } }
+@media (max-width:1200px){ html { font-size:14.5px; } }
+@media (max-width:1024px){ html { font-size:14.25px; } }
+@media (max-width:900px){ html { font-size:14px; } }
+@media (max-width:640px){ html { font-size:13.75px; } }
+body { letter-spacing: .2px; }
+
+/* Accessibility helpers */
+.skip-link { position:absolute; left:-999px; top:auto; width:1px; height:1px; overflow:hidden; }
+.skip-link:focus { position:fixed; left:16px; top:12px; width:auto; height:auto; padding:10px 16px; background:#111; color:#fff; z-index:3000; border-radius:8px; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+/* Navbar refinement */
+.navbar-pimeyes { height:70px; display:flex; align-items:center; font-size:14px; }
+.navbar-pimeyes.scrolled { box-shadow:0 4px 18px -6px rgba(0,0,0,.15); height:62px; }
+.navbar-content { transition:height .35s, padding .35s; }
+.navbar-logo { font-size:18px; }
+.navbar-links .nav-link { font-size:14px; padding:10px 16px; position:relative; }
+.navbar-links .nav-link.active, .navbar-links .nav-link[aria-current="page"] { background:rgba(255,255,255,.18); color:#fff; }
+.navbar-links .nav-link:after { content:""; position:absolute; left:16px; right:16px; bottom:6px; height:2px; background:#fff; transform:scaleX(0); transform-origin:left; transition:.35s; opacity:.85; border-radius:2px; }
+.navbar-links .nav-link:hover:after, .navbar-links .nav-link.active:after { transform:scaleX(1); }
+.mobile-nav-link.active { font-weight:600; background:rgba(255,255,255,.18); }
+
+/* Main container tighter top spacing due to navbar height change */
+.main-container { padding-top:86px; }
+
+/* Hero adjustments (reduce scale) */
+.hero-title { font-size:2.55rem; }
+.title-regular { font-size:1.9rem; }
+@media (min-width:1280px){ .hero-title { font-size:2.85rem; } .title-regular { font-size:2.15rem; } }
+.hero-subtitle { font-size:1rem; }
+.rotating-text-container { font-size:.85rem; }
+.stat-number { font-size:1.35rem; }
+.stat-text { font-size:.63rem; }
+.btn-primary-hero, .btn-secondary-hero { font-size:.82rem; padding:12px 22px; }
+
+/* Section spacing refinement */
+section { padding:64px 0; }
+@media (max-width:900px){ section { padding:56px 0; } }
+
+/* Card refinement */
+.card { transition:box-shadow .35s, transform .35s; }
+.card:hover { transform:translateY(-4px); box-shadow:0 14px 30px -10px rgba(0,0,0,.18); }
+
+/* Stream video tiles */
+.video-tile { display:flex; flex-direction:column; gap:8px; }
+
+/* Metrics badges color improvements */
+.badge[data-type="error"]{ background:rgba(220,38,38,0.12); color:#b91c1c; }
+
+/* Team page advanced grid & interactive cards */
+.team-grid { display:grid; gap:32px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); align-items:stretch; }
+.team-card { position:relative; perspective:1100px; min-height:340px; }
+.team-card-inner { height:100%; width:100%; position:relative; transform-style:preserve-3d; transition:transform .8s cubic-bezier(.19,1,.22,1); }
+@media (hover:hover){ .team-card:hover .team-card-inner { transform:rotateY(180deg); } }
+@media (max-width:680px){ .team-card-inner { transform:none !important; } .team-card-back { display:none; } }
+.team-card-front, .team-card-back { position:absolute; inset:0; backface-visibility:hidden; border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:26px 22px 30px; }
+.team-card-front { background:#fff; border:1px solid var(--border-gray); box-shadow:0 6px 18px -8px rgba(0,0,0,.08); }
+.team-card-back { background:linear-gradient(135deg,#2563eb,#1d4ed8); transform:rotateY(180deg); color:#fff; box-shadow:0 10px 28px -10px rgba(37,99,235,.55); }
+.member-image-wrapper { width:140px; height:140px; box-shadow:0 6px 18px -6px rgba(37,99,235,.4); }
+.member-name { font-size:1rem; letter-spacing:.2px; }
+.member-role { font-size:.65rem; letter-spacing:.8px; margin-top:4px; }
+.member-name-back { font-size:1.05rem; }
+.member-role-back { font-size:.65rem; letter-spacing:.9px; }
+.member-bio { font-size:.72rem; line-height:1.45; margin-top:6px; }
+.social-links-team { margin-top:10px; }
+.social-link-team { width:36px; height:36px; }
+.social-link-team:hover { transform:translateY(-4px) scale(1.05); }
+
+/* ProblemSolution & KeyHighlights subtle adjustments */
+.ps-title { font-size:2.8rem; }
+@media (max-width:900px){ .ps-title { font-size:2.2rem; } }
+.kh-title { font-size:2.5rem; }
+.kh-feature-box { padding:22px 24px; }
+.kh-feature-title { font-size:1.05rem; }
+.kh-feature-desc { font-size:.82rem; }
+
+/* CTA cards refinement */
+.cta-card { padding:30px 24px; }
+.cta-card-title { font-size:1.05rem; }
+.cta-card-subtitle { font-size:.7rem; letter-spacing:.5px; }
+.cta-card-desc { font-size:.82rem; }
+.cta-card-number { font-size:.75rem; }
+
+/* Footer scaling */
+.footer-tagline { font-size:.78rem; }
+.footer-link { font-size:.74rem; }
+.footer-heading { font-size:.72rem; }
+
+/* Animations (reduced amplitudes) */
+@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+.floating-card { font-size:.62rem; padding:10px 14px; }
+
+/* Active state for nav buttons */
+.nav-btn-login, .nav-btn-demo { font-size:.74rem; }
+
+/* Improved focus ring for dark-on-blue nav */
+.navbar-pimeyes a:focus-visible, .navbar-pimeyes button:focus-visible { outline:2px solid #fff; outline-offset:2px; border-radius:8px; }
+
+/* Utility refined */
+.flex-center { display:flex; align-items:center; justify-content:center; }
+.shadow-soft { box-shadow:0 8px 24px -10px rgba(0,0,0,.15); }
+
+/* END enhancements */

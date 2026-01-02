@@ -1,0 +1,552 @@
+/* Features Page - White Theme */
+.features-page {
+  background: #ffffff;
+  min-height: 100vh;
+  padding-top: 70px;
+}
+
+.features-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.features-content {
+  padding: 80px 0;
+}
+
+/* Header */
+.features-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.features-main-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+
+.features-main-subtitle {
+  font-size: 1.25rem;
+  color: #6b7280;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+/* Video Input Buttons Section */
+.video-input-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .video-input-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.video-input-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 50px 30px;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.video-input-btn:hover {
+  border-color: #3b82f6;
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.2);
+}
+
+.video-input-btn svg:first-child {
+  color: #3b82f6;
+  transition: transform 0.3s ease;
+}
+
+.video-input-btn:hover svg:first-child {
+  transform: scale(1.1);
+}
+
+.btn-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.btn-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.btn-arrow {
+  color: #3b82f6;
+  transition: transform 0.3s ease;
+}
+
+.video-input-btn:hover .btn-arrow {
+  transform: translateX(5px);
+}
+
+.upload-input-hidden {
+  display: none;
+}
+
+/* Live Camera Modal */
+.camera-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.camera-modal-content {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px;
+  max-width: 900px;
+  width: 100%;
+  position: relative;
+  animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.camera-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.camera-close-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.camera-modal-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 30px;
+}
+
+.camera-modal-title svg {
+  color: #3b82f6;
+}
+
+.camera-video-wrapper {
+  position: relative;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.live-camera-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  min-height: 400px;
+}
+
+.recording-indicator {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px 20px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: #dc2626;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.camera-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.camera-control-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.camera-control-btn:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.camera-control-btn.primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.camera-control-btn.primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Uploaded Videos Section */
+.uploaded-videos-section {
+  background: #f9fafb;
+  padding: 60px 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.uploaded-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 40px;
+}
+
+.uploaded-title svg {
+  color: #3b82f6;
+}
+
+.uploaded-videos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+@media (min-width: 640px) {
+  .uploaded-videos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .uploaded-videos-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.uploaded-video-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Uploaded Video Card Details */
+.uploaded-video-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.uploaded-video-preview {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+
+.uploaded-video-info {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.video-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-size {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.remove-video-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  backdrop-filter: blur(10px);
+}
+
+.uploaded-video-card:hover .remove-video-btn {
+  opacity: 1;
+}
+
+.remove-video-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .features-main-title {
+    font-size: 2.5rem;
+  }
+  
+  .features-main-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .video-input-btn {
+    padding: 40px 20px;
+  }
+  
+  .btn-title {
+    font-size: 1.25rem;
+  }
+  
+  .camera-modal-content {
+    padding: 30px 20px;
+  }
+  
+  .camera-modal-title {
+    font-size: 1.5rem;
+  }
+  
+  .camera-control-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  .uploaded-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .features-header {
+    margin-bottom: 50px;
+  }
+  
+  .features-main-title {
+    font-size: 2rem;
+  }
+  
+  .features-main-subtitle {
+    font-size: 1rem;
+  }
+  
+  .video-input-section {
+    gap: 20px;
+  }
+  
+  .video-input-btn {
+    padding: 30px 15px;
+  }
+  
+  .btn-title {
+    font-size: 1.1rem;
+  }
+  
+  .btn-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .camera-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .camera-control-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .live-camera-video {
+    min-height: 250px;
+  }
+}
+
+/* Loading States */
+.video-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Error States */
+.video-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 20px;
+  text-align: center;
+}
+
+/* Empty State */
+.no-videos-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+/* Animation for video cards appearing */
+.uploaded-video-card {
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar Styling */
+.uploaded-videos-section {
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.uploaded-videos-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.uploaded-videos-section::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.uploaded-videos-section::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.uploaded-videos-section::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

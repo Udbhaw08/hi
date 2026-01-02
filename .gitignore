@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+bbackend/models/*.onnx
+*.onnx
+
