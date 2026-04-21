@@ -8,6 +8,8 @@ import VideoFeed from "./components/VideoFeed";
 // Reorganized pages
 import Landing from "./pages/Landing";
 import About from "./pages/About";
+import Report from "./pages/Report";
+import Assistant from "./pages/Assistant";
 
 import Streams from "./pages/Streams";
 import Navbar from "./components/Navbar";
@@ -26,17 +28,6 @@ function AdminDashboard({ admin }) {
         </div>
         <div className="card">
           <PersonsList admin={admin} />
-        </div>
-      </div>
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Live Cameras (inline)</h2>
-        <div className="video-grid">
-          {[0, 1].map(id => (
-            <div key={id} className="video-tile">
-              <h4>Camera {id}</h4>
-              <VideoFeed camId={id} />
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -70,6 +61,8 @@ function App() {
           <Route path="/streams" element={<Streams admin={admin} />} />
           <Route path="/alerts" element={<Alerts admin={admin} />} />
           <Route path="/about" element={<About />} />
+          <Route path="/report" element={<Report />} />
+          <Route path="/assistant" element={<Assistant />} />
          
           <Route path="/admin/login" element={<AdminLoginPage onLogin={setAdmin} admin={admin} />} />
           <Route path="/admin" element={<AdminDashboard admin={admin} />} />

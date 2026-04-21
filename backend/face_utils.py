@@ -66,7 +66,8 @@ def _retinaface_try(frame):
         return []
     try:
         h0, w0 = frame.shape[:2]
-        img = cv2.resize(frame, (640, 640))
+        # Increased size for better distance detection
+        img = cv2.resize(frame, (960, 960))
         img_input = img.transpose(2,0,1)[None].astype(np.float32)
         outs = face_session.run(None, {input_name: img_input})
         cand = None
@@ -82,24 +83,22 @@ def _retinaface_try(frame):
         for p in cand:
             if p.shape[0] < 5: continue
             score = p[4]
-            if score < 0.6: continue
+            if score < 0.45: continue
             coords = p[:4]
             x1=y1=x2=y2=None
             if coords.max() <= 1.5: # normalized
-                cx, cy, w, h = coords * 640
-                x1 = int((cx - w/2) * w0 / 640)
-                y1 = int((cy - h/2) * h0 / 640)
-                x2 = int((cx + w/2) * w0 / 640)
-                y2 = int((cy + h/2) * h0 / 640)
-            elif coords.max() <= 642:
-                cx, cy, w, h = coords
-                x1 = int((cx - w/2) * w0 / 640)
-                y1 = int((cy - h/2) * h0 / 640)
-                x2 = int((cx + w/2) * w0 / 640)
-                y2 = int((cy + h/2) * h0 / 640)
+                cx, cy, w, h = coords * 960
+                x1 = int((cx - w/2) * w0 / 960)
+                y1 = int((cy - h/2) * h0 / 960)
+                x2 = int((cx + w/2) * w0 / 960)
+                y2 = int((cy + h/2) * h0 / 960)
             else:
                 x1, y1, x2, y2 = coords
-            if None in (x1,y1,x2,y2): continue
+                x1 = int(x1 * w0 / 960)
+                y1 = int(y1 * h0 / 960)
+                x2 = int(x2 * w0 / 960)
+                y2 = int(y2 * h0 / 960)
+            if x1 is None: continue
             if x2 <= x1 or y2 <= y1: continue
             boxes.append([int(x1), int(y1), int(x2), int(y2)])
         if boxes:

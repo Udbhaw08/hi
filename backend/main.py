@@ -27,6 +27,15 @@ except ImportError as e:
     from realtime_pipeline import pipeline_manager, get_events_snapshot, get_report_snapshot
     from db import alerts_collection
 
+# Face Trace module (multi-modal person search)
+try:
+    try:
+        from .face_trace import face_tracer  # type: ignore
+    except ImportError:
+        from face_trace import face_tracer
+except Exception:
+    face_tracer = None
+
 # Chatbot modules removed
 
 # Optional insightface engine (do NOT wrap core imports above)
@@ -70,10 +79,37 @@ try:
 except ImportError:
     logger.warning("python-multipart not installed in current venv; form endpoints will fail. Install with: pip install python-multipart")
 
-app = FastAPI()
-
 # Global variable to track server process
 server_process = None
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    try:
+        load_embedding_cache()
+    except Exception as e:
+        logger.error(f"Failed to preload embeddings: {e}")
+    
+    # Auto-start the pipeline
+    global server_process
+    try:
+        server_process = subprocess.Popen(["python", "-m", "backend.realtime_pipeline"], 
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.PIPE,
+                                         text=True)
+        logger.info("Auto-started realtime pipeline process")
+    except Exception as e:
+        logger.error(f"Error auto-starting realtime pipeline: {str(e)}")
+    
+    yield
+    
+    # Shutdown logic
+    if server_process:
+        server_process.terminate()
+
+app = FastAPI(lifespan=lifespan)
 
 # Endpoint to start the backend server
 @app.post("/admin/start_server")
@@ -97,24 +133,27 @@ async def start_server(background_tasks: BackgroundTasks, username: str = Form(.
     run_server()
     return JSONResponse({"status": "success", "message": "Server started successfully"})
 
-# Load embeddings at startup so existing DB persons are recognized immediately
-@app.on_event("startup")
-def _load_cache_startup():
-    try:
-        load_embedding_cache()
-    except Exception as e:
-        logger.error(f"Failed to preload embeddings: {e}")
+# Endpoint to stop the backend server
+@app.post("/admin/stop_server")
+async def stop_server(username: str = Form(...), password: str = Form(...)):
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Auto-start the pipeline on server startup
-    try:
-        global server_process
-        server_process = subprocess.Popen(["python", "-m", "backend.realtime_pipeline"], 
-                                         stdout=subprocess.PIPE, 
-                                         stderr=subprocess.PIPE,
-                                         text=True)
-        logger.info("Auto-started realtime pipeline process")
-    except Exception as e:
-        logger.error(f"Error auto-starting realtime pipeline: {str(e)}")
+    global server_process
+    if server_process:
+        try:
+            server_process.terminate()
+            # On Windows, terminate() might not be enough for subprocesses
+            # but usually it works for simple python -m commands.
+            server_process = None
+            logging.info("Stopped realtime pipeline process")
+            return JSONResponse({"status": "success", "message": "Server stopped successfully"})
+        except Exception as e:
+            logging.error(f"Error stopping realtime pipeline: {str(e)}")
+            return JSONResponse({"status": "error", "message": str(e)})
+    return JSONResponse({"status": "error", "message": "No server process running"})
+
+# CORS (allow all for demo)
 
 # CORS (allow all for demo)
 app.add_middleware(
@@ -730,6 +769,32 @@ async def ws_pipeline(websocket: WebSocket, cam_id: int):
             pass
     # closed
 
+@app.post('/api/alerts')
+async def create_alert(payload: dict = Body(...)):
+    """Allow external scripts to post new alerts to the unified alerts database."""
+    try:
+        # Normalize payload for the DB
+        doc = {
+            'ts': payload.get('ts', time.time()),
+            'cam_id': payload.get('cam_id', 0),
+            'track_id': payload.get('track_id', 0),
+            'type': payload.get('type', 'SECURITY_ALERT'),
+            'action': payload.get('action', 'Detected'),
+            'bbox': payload.get('bbox'),
+            'weapon_classes': payload.get('weapon_classes', []),
+            'person_id': payload.get('person_id'),
+            'name': payload.get('name'),
+            'flag': payload.get('flag'),
+            'match_score': payload.get('match_score'),
+            'image': payload.get('image'), # Base64 image
+            'description': payload.get('description', ''),
+            'inserted_at': time.time()
+        }
+        res = alerts_collection.insert_one(doc)
+        return {"status": "success", "id": str(res.inserted_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get('/alerts')
 async def list_alerts(cam_id: Optional[int] = None, limit: int = 50, since_ts: Optional[float] = None):
     """Return recent persisted alert documents (refined logic)."""
@@ -813,6 +878,99 @@ async def get_pipeline_render(cam_id: int):
         raise HTTPException(status_code=500, detail=str(e))
     
 # Chatbot API endpoints removed
+
+# ═══════════════════════════════════════════════════════════════════
+#  Face Trace — Multi-Modal Person Search
+# ═══════════════════════════════════════════════════════════════════
+
+@app.post('/face_trace/reference')
+async def face_trace_upload_reference(
+    username: str = Form(...),
+    password: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """Upload a reference image of the target person.
+    The system extracts face, body, and clothing features."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+
+    # Save temp file and extract features
+    os.makedirs('./data/face_trace_results', exist_ok=True)
+    ref_path = os.path.join('./data/face_trace_results', '_reference.jpg')
+    with open(ref_path, 'wb') as f:
+        shutil.copyfileobj(file.file, f)
+
+    ok, msg = face_tracer.set_reference(ref_path)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {'status': 'ok', 'message': msg, 'features': face_tracer.get_status()['features']}
+
+
+@app.post('/face_trace/start')
+async def face_trace_start(
+    username: str = Form(...),
+    password: str = Form(...),
+    cam_id: int = Form(0),
+    max_seconds: int = Form(300)
+):
+    """Start searching for the reference person on a camera feed."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+
+    ok, msg = face_tracer.start_search(cam_id=cam_id, max_seconds=max_seconds)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {'status': 'ok', 'message': msg}
+
+
+@app.post('/face_trace/stop')
+async def face_trace_stop(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    """Stop the current person search."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    face_tracer.stop_search()
+    return {'status': 'stopped'}
+
+
+@app.get('/face_trace/status')
+async def face_trace_status(username: str, password: str):
+    """Poll search status, elapsed time, and best match score."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    return face_tracer.get_status()
+
+
+@app.get('/face_trace/results')
+async def face_trace_results(username: str, password: str):
+    """Get all match results with scores and saved image paths."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    return face_tracer.get_results()
+
+
+@app.get('/face_trace/image/{filename}')
+async def face_trace_serve_image(filename: str):
+    """Serve a saved match image (annotated or clean)."""
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    path = os.path.join(face_tracer.output_dir, filename)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(path)
+
 
 if __name__ == "__main__":
     import uvicorn

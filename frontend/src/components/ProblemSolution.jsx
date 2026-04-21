@@ -1,40 +1,57 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import '../styles/ProblemSolution.css';
-import problemBg from '../assets/images/sections/problem-solution-bg.jpg';
 
 const ProblemSolution = () => {
+  const features = [
+    'Face Detection',
+    'Real-time Recognition',
+    'Clothing Analysis',
+    'clohing 2 Detection',
+    'NFC Dashboard',
+    'Admin Control',
+    'BODY POSE'
+  ];
+
   return (
     <section className="problem-solution-section" id="problem-solution">
-      <div className="ps-bg-container">
-        <div className="ps-background-layer">
-          <img src={problemBg} alt="DRISHTI System" className="ps-bg-image" />
-          <div className="ps-bg-placeholder"></div>
+      <div className="container">
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h2 className="ps-title" style={{ fontSize: '2.5rem', fontWeight: 700 }}>Key Capabilities</h2>
+          <p style={{ color: '#6b7280', maxWidth: '600px', margin: '1rem auto' }}>
+            Advanced security features designed for robust surveillance and real-time monitoring.
+          </p>
         </div>
-        <div className="ps-overlay"></div>
-        <div className="ps-content-wrapper">
-          <div className="ps-container">
-            <div className="ps-header">
-              <h2 className="ps-title">DRISHTI</h2>
-              <div className="ps-description">
-                <p className="ps-desc-line">Advanced <span className="highlight-inline">AI-powered video surveillance</span> system designed for security.</p>
-                <p className="ps-desc-line">Real-time threat detection, facial recognition, and automated incident reporting in one unified platform.</p>
-              </div>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '1.5rem',
+          padding: '2rem 0'
+        }}>
+          {features.map((feature, index) => (
+            <div key={index} style={{
+              background: '#f9fafb',
+              padding: '2rem',
+              borderRadius: '16px',
+              textAlign: 'center',
+              border: '1px solid #e5e7eb',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              cursor: 'default'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+              e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            >
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#111827' }}>{feature}</h3>
             </div>
-            <div className="ps-cta-box">
-              <div className="ps-cta-inner">
-                <h3 className="ps-cta-title"><span className="cta-highlight">Revolutionizing</span><span className="cta-text"> Security Operations</span>
-                  <svg className="title-underline-red" viewBox="0 0 500 12" xmlns="http://www.w3.org/2000/svg"><path d="M2 9c165-4 335-4 496 0" stroke="#dc2626" strokeWidth="3" fill="none" strokeLinecap="round"/></svg>
-                </h3>
-                <p className="ps-cta-description">DRISHTI combines cutting-edge artificial intelligence with comprehensive video analysis to provide unparalleled security monitoring capabilities for national defense operations.</p>
-                <Link to="/about" className="ps-discover-btn"><span>Discover More About DRISHTI</span><ArrowRight size={22} /></Link>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
   );
 };
+
 export default ProblemSolution;

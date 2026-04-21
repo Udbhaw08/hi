@@ -1,20 +1,21 @@
-/* PimEyes-Style Navbar - Always Blue */
+/* PimEyes-Style Navbar - White Theme */
 .navbar-pimeyes {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: #ffffff;
   transition: transform 0.3s ease-out;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 
 /* Scroll Progress Bar (added) */
 .navbar-progress-bar {
   position: absolute;
   left: 0;
-  top: 0; /* show at very top edge */
+  top: 0;
+  /* show at very top edge */
   height: 3px;
   width: 0;
   background: linear-gradient(90deg, #fbbf24, #f59e0b, #dc2626);
@@ -24,11 +25,17 @@
   border-top-right-radius: 2px;
   pointer-events: none;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .navbar-progress-bar { transition: none; }
+  .navbar-progress-bar {
+    transition: none;
+  }
 }
+
 @media (forced-colors: active) {
-  .navbar-progress-bar { background: Highlight; }
+  .navbar-progress-bar {
+    background: Highlight;
+  }
 }
 
 /* Hide/Show Animation */
@@ -56,8 +63,8 @@
 /* Logo - Always White */
 .navbar-logo {
   display: flex;
-  align-items: left;
-  gap: 12px;
+  align-items: center;
+  gap: 6px;
   text-decoration: none;
   transition: transform 0.2s ease;
 }
@@ -65,15 +72,15 @@
 .logo-icon {
   width: 28px;
   height: 28px;
-  color: #ffffff;
+  color: #000000;
 }
 
 .logo-text {
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: #000000;
   letter-spacing: -0.5px;
-  margin-right: 700px;
+  /* Removed large margin hack */
 }
 
 .navbar-logo:hover {
@@ -84,7 +91,10 @@
 .navbar-links {
   display: none;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  /* Added gap between buttons */
+  margin-right: 40px;
+  /* Shifted little left, not extreme */
 }
 
 @media (min-width: 768px) {
@@ -113,49 +123,239 @@
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-left: 12px;
+  gap: 16px;
+  margin-left: 20px;
 }
 
-/* Login Button - White Outline */
-.nav-btn-login {
+/* Retro Neobrutalist Buttons */
+.retro-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 12px 6px 16px;
+  height: 38px;
+  cursor: pointer;
+  box-shadow: 2px 3px 0px #1e3a5f;
+  border: 2px solid #1e3a5f;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  /* Restored for animation */
+  z-index: 100;
+  transition: box-shadow 250ms, transform 250ms, filter 50ms;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.retro-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 2px 0px #1e3a5f;
+}
+
+.retro-btn:active {
+  filter: saturate(0.75);
+}
+
+.retro-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateX(-100%);
+  transition: transform 250ms;
+}
+
+.retro-btn:hover::after {
+  transform: translateX(0);
+}
+
+/* Retro Button Text */
+.retro-btn-text {
+  position: relative;
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 6px;
-  background: transparent;
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
+  padding-right: 6px;
+  color: inherit;
+  z-index: 2;
+  /* Ensure text is above ::after */
 }
 
-.nav-btn-login:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
+/* Retro Button Arrow */
+.retro-btn-arrow {
+  padding: 0.35em;
+  margin-inline-end: 0.4em;
+  border: 2px solid #1e3a5f;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  transition: transform 250ms, background-color 250ms;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Demo Button - Solid White */
-.nav-btn-demo {
-  background: #ffffff;
-  color: #2563eb;
-  border: 2px solid #ffffff;
-  padding: 8px 24px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
+.retro-btn-arrow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform: translateX(-100%);
+  z-index: -1;
+  transition: transform 250ms ease-in-out;
 }
 
-.nav-btn-demo:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.retro-btn:hover .retro-btn-arrow::after {
+  transform: translateX(0);
+}
+
+.retro-btn:hover .retro-btn-arrow {
+  transform: translateX(3px);
+}
+
+.retro-btn:active .retro-btn-arrow {
+  transform: translateX(5px);
+}
+
+.retro-btn-arrow svg {
+  vertical-align: middle;
+}
+
+/* Blue Button Variant */
+.retro-btn-blue {
+  background-color: #bfdbfe;
+  color: #1e3a5f;
+}
+
+.retro-btn-blue::after {
+  background-color: #93c5fd;
+}
+
+.retro-btn-blue .retro-btn-arrow {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.retro-btn-blue .retro-btn-arrow::after {
+  background-color: #bfdbfe;
+}
+
+.retro-btn-blue:hover .retro-btn-arrow {
+  color: #1e3a5f;
+}
+
+/* Red Button Variant */
+.retro-btn-red {
+  background-color: #fecaca;
+  color: #7f1d1d;
+  box-shadow: 2px 3px 0px #7f1d1d;
+  border-color: #7f1d1d;
+}
+
+.retro-btn-red::after {
+  background-color: #fca5a5;
+}
+
+.retro-btn-red .retro-btn-arrow {
+  background-color: #ef4444;
+  color: white;
+  border-color: #7f1d1d;
+}
+
+.retro-btn-red .retro-btn-arrow::after {
+  background-color: #fecaca;
+}
+
+.retro-btn-red:hover .retro-btn-arrow {
+  color: #7f1d1d;
+}
+
+/* Yellow Button Variant */
+.retro-btn-yellow {
+  background-color: #fef08a;
+  color: #854d0e;
+  box-shadow: 2px 3px 0px #854d0e;
+  border-color: #854d0e;
+}
+
+.retro-btn-yellow::after {
+  background-color: #fde047;
+}
+
+.retro-btn-yellow .retro-btn-arrow {
+  background-color: #eab308;
+  color: white;
+  border-color: #854d0e;
+}
+
+.retro-btn-yellow .retro-btn-arrow::after {
+  background-color: #fef08a;
+}
+
+.retro-btn-yellow:hover .retro-btn-arrow {
+  color: #854d0e;
+}
+
+/* Green Button Variant */
+.retro-btn-green {
+  background-color: #bbf7d0;
+  color: #14532d;
+  box-shadow: 2px 3px 0px #14532d;
+  border-color: #14532d;
+}
+
+.retro-btn-green::after {
+  background-color: #86efac;
+}
+
+.retro-btn-green .retro-btn-arrow {
+  background-color: #22c55e;
+  color: white;
+  border-color: #14532d;
+}
+
+.retro-btn-green .retro-btn-arrow::after {
+  background-color: #bbf7d0;
+}
+
+.retro-btn-green:hover .retro-btn-arrow {
+  color: #14532d;
+}
+
+/* Nav Link Button Variant (Blue - Same as Others) */
+.retro-btn-nav {
+  background-color: #bfdbfe;
+  color: #1e3a5f;
+  box-shadow: 2px 3px 0px #1e3a5f;
+  border-color: #1e3a5f;
+}
+
+.retro-btn-nav::after {
+  background-color: #93c5fd;
+}
+
+.retro-btn-nav .retro-btn-arrow {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #1e3a5f;
+}
+
+.retro-btn-nav .retro-btn-arrow::after {
+  background-color: #bfdbfe;
+}
+
+.retro-btn-nav:hover .retro-btn-arrow {
+  color: #1e3a5f;
+}
+
+.retro-btn-nav.active {
+  background-color: #93c5fd;
+  box-shadow: 1px 2px 0px #1e3a5f;
 }
 
 /* Mobile Menu Button */
@@ -163,7 +363,7 @@
   display: block;
   background: none;
   border: none;
-  color: #ffffff;
+  color: #000000;
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -171,7 +371,7 @@
 }
 
 .mobile-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 @media (min-width: 768px) {
@@ -192,6 +392,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -7,9 +7,9 @@ const Footer = () => {
   const footerLinks = {
     product: [ { name: 'Streams', path: '/streams' }, { name: 'Tools & Tech', path: '/#cta' }, { name: 'Why DRISHTI', path: '/#key-highlights' } ],
     company: [ { name: 'About Project', path: '/about' }, { name: 'Our Team', path: '/team' }, { name: 'Problem Statement', path: '/about' } ],
-    resources: [ { name: 'SIH 2025', url: 'https://www.sih.gov.in/', external: true }, { name: 'GitHub Repository', url: '#', external: true }, { name: 'Documentation', url: '#', external: false } ],
+    resources: [ { name: 'GitHub Repository', url: '#', external: true }, { name: 'Documentation', url: '#', external: false } ],
   };
-  const socialLinks = [ { icon: Github, url: '#', label: 'GitHub' }, { icon: Linkedin, url: '#', label: 'LinkedIn' }, { icon: Twitter, url: '#', label: 'Twitter' }, { icon: Mail, url: 'mailto:team@drishti.ai', label: 'Email' } ];
+  const socialLinks = [ { icon: Github, url: '#', label: 'GitHub' }, { icon: Linkedin, url: '#', label: 'LinkedIn' }, { icon: Twitter, url: '#', label: 'Twitter' }, { icon: Mail, url: 'mailto:support@drishti.ai', label: 'Email' } ];
   return (
     <footer className="footer">
       <div className="container">
@@ -44,7 +44,7 @@ const Footer = () => {
         </div>
         <div className="footer-bottom">
           <p style={{ color:'#6b7280', fontSize:14, marginBottom:8, fontWeight:500 }}>© {new Date().getFullYear()} DRISHTI AI. All rights reserved.</p>
-          <p className="footer-note">Built for Smart India Hackathon 2025 - National Security & Defense</p>
+          <p className="footer-note">National Security & Defense</p>
         </div>
       </div>
     </footer>

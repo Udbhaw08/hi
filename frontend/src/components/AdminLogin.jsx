@@ -17,59 +17,57 @@ export default function AdminLogin({ onLogin }) {
       formData.append("password", password);
       await adminLogin(formData);
       onLogin({ username, password });
-    } catch (e) {
-      setError("Login failed. Please check your credentials.");
+    } catch {
+      setError("Invalid username or password.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !loading) {
-      handleLogin();
-    }
+    if (e.key === "Enter" && !loading) handleLogin();
   };
 
   return (
-    <div className="admin-login-wrapper">
-      <div className="admin-login-container">
-        <h2>Admin Login</h2>
-        <p className="admin-login-subtitle">Enter your credentials to access the dashboard</p>
-        
-        <div className="admin-login-form">
-          {error && <div className="admin-error-message">{error}</div>}
-          
-          <div className="admin-input-group">
-            <label className="admin-input-label">Username</label>
-            <input 
-              placeholder="Enter username" 
-              value={username} 
-              onChange={e => setUsername(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="admin-input-group">
-            <label className="admin-input-label">Password</label>
-            <input 
-              placeholder="Enter password" 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={loading}
-            />
-          </div>
-          
-          <button 
-            className={`admin-login-btn ${loading ? 'loading' : ''}`}
-            onClick={handleLogin} 
+    <div className="auth-wrapper">
+      <div className="auth-card">
+        <h1 className="auth-title">Admin Access</h1>
+        <p className="auth-subtitle">
+          Secure access to DRISHTI control panel
+        </p>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="auth-field">
+          <label>Username</label>
+          <input
+            placeholder="Enter username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={handleKeyPress}
             disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+          />
         </div>
+
+        <div className="auth-field">
+          <label>Password</label>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyPress}
+            disabled={loading}
+          />
+        </div>
+
+        <button
+          className={`auth-btn ${loading ? "loading" : ""}`}
+          onClick={handleLogin}
+          disabled={loading}
+        >
+          {loading ? "Authenticating…" : "Sign in"}
+        </button>
       </div>
     </div>
   );

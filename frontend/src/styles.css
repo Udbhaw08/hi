@@ -237,7 +237,7 @@ body { letter-spacing: .2px; }
 .navbar-pimeyes { height:70px; display:flex; align-items:center; font-size:14px; }
 .navbar-pimeyes.scrolled { box-shadow:0 4px 18px -6px rgba(0,0,0,.15); height:62px; }
 .navbar-content { transition:height .35s, padding .35s; }
-.navbar-logo { font-size:18px; }
+.navbar-logo { font-size: 18px; position: relative; left: -60px; }
 .navbar-links .nav-link { font-size:14px; padding:10px 16px; position:relative; }
 .navbar-links .nav-link.active, .navbar-links .nav-link[aria-current="page"] { background:rgba(255,255,255,.18); color:#fff; }
 .navbar-links .nav-link:after { content:""; position:absolute; left:16px; right:16px; bottom:6px; height:2px; background:#fff; transform:scaleX(0); transform-origin:left; transition:.35s; opacity:.85; border-radius:2px; }

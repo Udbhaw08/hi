@@ -69,7 +69,7 @@ const Alerts = ({ admin }) => {
             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
               <thead>
                 <tr style={{ background:'#f9fafb', textAlign:'left' }}>
-                  {['Time','Cam','Track','Identity','Flag','Action','Weapons','Type','Match','Pose',''].map(h => <th key={h} style={{ padding:'8px 10px', borderBottom:'1px solid #e5e7eb' }}>{h}</th>)}
+                  {['Time','Image','Cam','Track','Identity','Flag','Action','Weapons','Type','Match','Pose',''].map(h => <th key={h} style={{ padding:'8px 10px', borderBottom:'1px solid #e5e7eb' }}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -85,6 +85,13 @@ const Alerts = ({ admin }) => {
                       background: 'transparent'
                     }}>
                       <td style={{ padding:'6px 10px' }}>{dt}</td>
+                      <td style={{ padding:'6px 10px' }}>
+                        {a.image ? (
+                          <img src={a.image} alt="Detection" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover', cursor: 'pointer', border: '1px solid #e2e8f0' }} onClick={() => setSelected(a)} />
+                        ) : (
+                          <div style={{ width: 40, height: 40, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 10 }}>N/A</div>
+                        )}
+                      </td>
                       <td style={{ padding:'6px 10px' }}>{a.cam_id}</td>
                       <td style={{ padding:'6px 10px' }}>{a.track_id}</td>
                       <td style={{ padding:'6px 10px' }}>{identityLabel}</td>
@@ -115,7 +122,14 @@ const Alerts = ({ admin }) => {
               <button onClick={()=>setSelected(null)} style={{ background:'#fff', color:'#111', border:'1px solid #e5e7eb', padding:'6px 10px', fontSize:12 }}>Close</button>
             </div>
             {reportLoading ? <div style={{ fontSize:13, color:'#6b7280' }}>Loading report...</div> : (
-              <pre style={{ fontSize:11, background:'#f8fafc', padding:16, borderRadius:8, lineHeight:1.4, whiteSpace:'pre-wrap' }}>{reportText}</pre>
+              <div style={{ display: 'flex', gap: 20 }}>
+                {selected.image && (
+                  <div style={{ flex: '0 0 300px' }}>
+                    <img src={selected.image} alt="Detection" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                  </div>
+                )}
+                <pre style={{ flex: 1, fontSize: 11, background: '#f8fafc', padding: 16, borderRadius: 8, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{reportText || JSON.stringify(selected, null, 2)}</pre>
+              </div>
             )}
           </div>
         </div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import Hero from '../components/Hero';
-import ProblemSolution from '../components/ProblemSolution';
 import KeyHighlights from '../components/KeyHighlights';
 import CTA from '../components/CTA';
 
@@ -9,10 +8,6 @@ const Landing = () => {
     <div className="landing-page-full">
       <section className="hero-wrapper">
         <Hero />
-      </section>
-      
-      <section className="problem-wrapper">
-        <ProblemSolution />
       </section>
       
       <section className="highlights-wrapper">

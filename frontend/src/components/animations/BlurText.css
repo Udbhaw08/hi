@@ -1,0 +1,8 @@
+.blur-text {
+    display: inline-block;
+}
+
+.blur-char {
+    display: inline-block;
+    will-change: transform, filter, opacity;
+}
