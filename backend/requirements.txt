@@ -3,7 +3,7 @@ uvicorn
 pymongo
 python-dotenv
 opencv-python
-onnxruntime
+onnxruntime-directml
 numpy
 python-multipart
 passlib[bcrypt]

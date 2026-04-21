@@ -1,0 +1,103 @@
+# Drishti AI - Comprehensive Project Guide and Walkthrough
+
+This document serves as a complete, guided walkthrough of the **Drishti-full** project. It is designed to help you deeply understand the entire architecture, the specific AI models used, and how data flows through the system. You can use this guide as the foundation for your presentation.
+
+---
+
+## 1. High-Level Project Overview
+
+**Drishti** is an AI-powered intelligent surveillance system designed to upgrade traditional CCTV, drones, and bodycams into a proactive safety platform. Instead of simply recording footage for post-incident review, Drishti analyzes video feeds in true real-time. 
+
+**Core Value Propositions:**
+1. **Real-time Threat Detection:** Flags weapons, fighting, aiming, or anomalous behavior instantly.
+2. **Multi-Camera Person Tracking (Re-ID):** Can track criminals, suspects, or missing children across a network of cameras using faces, clothing, and body posture.
+3. **Smart Integrations:** Incorporates NFC-based alerts to give ground staff a way to instantly flag areas, connecting human reporting directly to the AI timeline. 
+4. **Data Privacy & Oversight:** Strong focus on limiting false alerts via Whitelists, bounding box analytics, and trusted AI interfaces.
+
+### Architecture Topology
+The system consists of three main pillars:
+- **FastAPI Video/AI Backend:** Ingests RTSP feeds, processes frames through a heavy GPU-accelerated pipeline, runs heuristics, and broadcasts results over WebSockets.
+- **Computer Vision Model Zoo:** An orchestrated ensemble of distinct models solving separate problems (Detection, Pose, Face, NLP).
+- **React.js Dashboard Frontend:** A clean interface that paints bounding boxes over live sockets, manages "Target" persons, and gives admins full command-line-like control over the camera fleet.
+
+---
+
+## 2. The AI Models: What They Are & How They Work
+
+Drishti uses an ensemble architecture. Rather than relying on a single slow monolithic AI, it delegates tasks to specialized models. 
+
+### A. YOLOv8 (Object & Weapon Detection)
+- **What it is:** A state-of-the-art real-time object detection model.
+- **Where it lives:** Loaded via ONNX Runtime (`best.onnx`) with GPU acceleration (DirectML/CUDA).
+- **How it works:** YOLO scans every frame and predicts bounding boxes with confidence scores. In Drishti, it is specifically fine-tuned and utilized to spot weapons (guns, knives, etc.) or general objects of interest in crowds.
+
+### B. MediaPipe BlazePose (Human Pose & Action Recognition)
+- **What it is:** A 33-keypoint human topological skeleton model.
+- **Where it lives:** It's evaluated inside `utils_pose_rules.py` through the API.
+- **How it works:** Instead of using heavy 3D convolution networks (like SlowFast directly), the backend utilizes advanced heuristics over skeletal joints. For example:
+  - **"Aiming":** Calculates the angle between the shoulder (`LS/RS`), elbow (`LE/RE`), and wrist (`LW/RW`). If the arm is extended (elbow angle > 135°) and a weapon bounding box from YOLO overlaps the person's center, the engine flags **Aiming**.
+  - **"Fighting":** Calculates wrist velocity over a history of 5-25 frames. If the velocity spikes above a threshold `FIGHT_WRIST_VEL`, it flags a struggle.
+
+### C. OSNet Person Re-ID (Appearance & Body Matching)
+- **What it is:** Omni-Scale Network, a model specifically built for Person Re-Identification.
+- **Where it lives:** Extracted in the `face_trace.py` framework, trained on the massive `MSMT17` dataset.
+- **How it works:** Returns a dense 512-dimensional vector embedding of a person's body and clothing. If a suspect turns their back to the CCTV—hiding their face—the OSNet embedding tracks the color, texture, and shape of their clothing (e.g. blue hoodie, black bag) to follow them smoothly across different cameras. 
+
+### D. InsightFace / ArcFace (Facial Recognition)
+- **What it is:** Deep convolution neural network trained on massive face datasets (like GlintR100).
+- **Where it lives:** Orchestrated by `face_engine.py` and `face_trace.py`.
+- **How it works:** When a high-quality human face occurs in the bounding box, ArcFace maps the biometric features into a 512-dimensional mathematical space. The backend compares this face against the `data/person_images/` enrollment database (like missing kids or VIP Whitelists) using cosine similarity logic. 
+
+### E. Sentence-Transformers (Chatbot & Frame Indexing)
+- **What it is:** An NLP (Natural Language Processing) PyTorch model (like `all-MiniLM-L6`).
+- **Where it lives:** Handled by the AMG chatbot directory (`amg_chatbot`).
+- **How it works:** Analyzes metadata or descriptions of video frames and creates text embeddings. This allows users to "talk" to the video log or perform semantic search querying events like *"Show me a guy in a blue shirt from Camera 2"*.
+
+---
+
+## 3. Data Flow: How a Frame is Processed
+
+When a camera sends a frame, here is exactly what the backend does to it. This is your "System Pipeline" you can present:
+
+1. **Ingestion & Crop:** The RTSP feed or WebCam is grabbed via OpenCV (`get_frame()`). The image is resized and passed heavily into the GPU.
+2. **Detection & Tracking (YOLO & Bytetracker):** YOLO draws bounding boxes on all entities (People, Weapons). Bytetracker assigns IDs to these boxes (`Person 1`, `Person 2`) so they don't get mixed up between frames.
+3. **Weapon Association Pipeline:** If YOLO finds a weapon box, the engine calculates the "Intersection over Union" (IoU). If the weapon's center is inside a Person's bounding box, the weapon is officially associated with that person.
+4. **Action Classification:** The bounding boxes are passed to the MediaPipe Pose logic. Based on their pose history, they are labelled as *Normal*, *Running*, *Loitering*, *Fighting*, or *Aiming*.
+5. **Re-Identification / Face Rec (The Search):** 
+   - If the person's face is visible -> The Face Engine extracts an ArcFace vector.
+   - If no face is visible -> The OSNet Engine grabs the body cropped texture + fallback OpenCV HOG clothing histograms.
+   - The results are scored against the missing/watched person embeddings. If similarity > ~70-80%, an Alert is triggered.
+6. **Broadcasting (WebSockets):** The finalized image, now drawn with bounding boxes, labels, and tracking IDs, is converted to a base64 or binary buffer and blasted via FastAPI WebSockets to the React frontend.
+
+---
+
+## 4. Subsystems and Notable Components
+
+* **Lost & Found Search Engine:** Allows security to upload a photo of a missing child. The `compute_embeddings.py` script runs their photo through both InsightFace and OSNet, saving their profile. The cameras immediately begin scanning the crowd for those exact features.
+* **Threat Mitigation Rule Engine:** The `action_engine.py` is dynamically configurable via env variables (`AIM_ANGLE_MIN`, `LOITER_RADIUS_PX`). This allows administrators to increase or decrease system sensitivity based on crowd density.
+* **Multi-cam & GPU Support:** Designed out of the box to split inference workloads across hardware lines, isolating computationally heavy items like YOLO off the CPU to DirectML (`DmlExecutionProvider`) or CUDA setups, to hit high FPS.
+
+---
+Here is a breakdown of every file inside c:\Users\udbha\Desktop\Udbhaw_Work\Drishti-full\backend\models, what they do, and exactly how they are being used by the backend code:
+
+1. best.onnx (12.4 MB) - YOLOv8 Object & Weapon Detection
+What it is: A fine-tuned YOLOv8 (You Only Look Once) network exported to the ONNX format.
+How it's used: Loaded within realtime_pipeline.py and test.py via onnxruntime. This model processes full video frames to spot and draw bounding boxes around bounding classes (People and Weapons). Its output is then passed to action_engine.py which computes overlaps (IoU) to associate a detected weapon with a specific person.
+2. glintr100.onnx (260 MB) - ArcFace Biometric Embedder
+What it is: A heavy deep-convolutional Face Recognition model trained on the massive GlintR100 dataset.
+How it's used: Loaded by face_trace.py and recognition_utils.py. Once a face is cropped from a frame, it is pushed through this model. It converts the face into a mathematically unique 512-dimensional vector (embedding). This vector is then matched using Cosine Similarity against the faces saved in your database to recognize suspects, VIPs, or missing persons.
+3. scrfd_500m_bnkps.onnx (2.5 MB) - SCRFD Face Detector
+What it is: Sample and Computation Redistribution for Fast face Detection. An ultra-fast, lightweight face detector containing 500 million parameters.
+How it's used: Loaded in face_trace.py as the precursor to glintr100. It rapidly scans a crowd and draws tight bounding boxes strictly around human faces. Once scrfd finds a face, that specific cropped region is shipped to glintr100 for recognition.
+4. retinaface_mobilenet0.25.onnx (1.7 MB) - RetinaFace (Fallback Face Detector)
+What it is: Another extremely lightweight object detector specializing solely in faces, but utilizing a MobileNet backbone.
+How it's used: Loaded in face_utils.py. It is likely serving as a fast, alternative fallback for face alignment, landmark detection, or quick crop generation in pipelines where the heavier InsightFace setup might throttle smaller endpoints.
+5. osnet_x1_0_msmt17.onnx (8.7 MB) - OSNet Person Re-Identification
+What it is: Omni-Scale Network, a model specifically trained on the MSMT17 dataset (Multi-Scene Multi-Time).
+How it's used: Loaded in face_trace.py. Unlike ArcFace which needs a clear view of a face, OSNet takes a full body crop from YOLO and maps the color, texture, shape, and style of the person's clothing into a 512-dim embedding. If a suspect turns their back to the camera, OSNet allows the camera network to track their clothing rather than their face.
+6. pose_landmark_full.onnx (12.7 MB) - MediaPipe BlazePose
+What it is: A pose-estimation model that generates 33 topological skeleton keypoints (shoulders, elbows, wrists, etc.) on a human form.
+How it's used: Loaded alongside YOLO in realtime_pipeline.py. It assigns structural coordinate points inside the bounding boxes YOLO generates. The backend (utils_pose_rules.py) uses these mathematical points to run heuristics. For instance, if the angle between the shoulder (keypoint 11), elbow (13), and wrist (15) is straight, and YOLO spots a weapon nearby, the engine flags an Aiming action.
+7. bytetrack Directory - Multi-Object Tracker (MOT)
+What it is: ByteTrack is a highly efficient tracking algorithm, frequently paired with YOLO.
+How it's used: YOLO forgets what it saw in the previous frame—it only detects what is in front of it right now. ByteTrack takes the bounding boxes generated by YOLO and assigns them persisting IDs (Person 1, Person 2). It connects the detections cleanly across thousands of frames using Kalman filters.

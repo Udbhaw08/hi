@@ -14,8 +14,8 @@ import numpy as np
 try:
     import winsound
     def _beep():
-        """Play a detection alert sound."""
-        threading.Thread(target=lambda: winsound.Beep(1200, 500), daemon=True).start()
+        """Play a custom loud detection alert sound synchronously to ensure it completes."""
+        winsound.PlaySound("alert.wav", winsound.SND_FILENAME)
 except ImportError:
     def _beep():
         print('\a')  # terminal bell fallback
@@ -74,10 +74,13 @@ class CameraReader:
 def main():
     parser = argparse.ArgumentParser(description="Face Trace — Find a person from camera")
     parser.add_argument('--ref', required=True, help="Path to reference image of the target person")
-    parser.add_argument('--cam', type=int, default=1, help="Camera index (default: 1 = laptop webcam)")
-    parser.add_argument('--threshold', type=float, default=0.35, help="Match threshold (default: 0.35)")
+    parser.add_argument('--cam', type=str, default='0', help="Camera index (e.g. 0, 1) or IP stream URL")
+    parser.add_argument('--threshold', type=float, default=0.40, help="Match threshold (default: 0.40)")
     parser.add_argument('--output', default='./data/face_trace_results', help="Output directory for saved matches")
     args = parser.parse_args()
+
+    # Support simple index '1' or network stream 'http://192.168.1.1:8080/video'
+    cam_source = int(args.cam) if args.cam.isdigit() else args.cam
 
     # ── 1. Load reference ──
     tracer = FaceTracer()
@@ -85,7 +88,7 @@ def main():
     print(f"  FACE TRACE — Multi-Modal Person Search")
     print(f"{'='*60}")
     print(f"  Reference : {args.ref}")
-    print(f"  Camera    : {args.cam}")
+    print(f"  Camera    : {cam_source}")
     print(f"  Threshold : {args.threshold}")
     print(f"  Output    : {args.output}")
     print(f"{'='*60}\n")
@@ -105,9 +108,9 @@ def main():
     ft_module.CONFIDENT_THRESHOLD = args.threshold + 0.10
 
     # ── 2. Open camera (threaded — no lag) ──
-    print(f"[INFO] Opening camera {args.cam}...")
+    print(f"[INFO] Opening camera {cam_source}...")
 
-    cam = CameraReader(args.cam)
+    cam = CameraReader(cam_source)
     if not cam.is_opened():
         print(f"[ERROR] Cannot open camera {args.cam}")
         sys.exit(1)
@@ -138,41 +141,40 @@ def main():
             display = frame.copy()
             elapsed = time.time() - start_time
 
-            # ── Run detection every 5th frame (reduce CPU load) ──
-            if frame_count % 5 == 0:
-                last_detections = tracer.process_frame(frame)
+            # ── Run detection on every frame for instant response ──
+            t0 = time.time()
+            last_detections = tracer.process_frame(frame)
+            latency_ms = (time.time() - t0) * 1000
 
             # ── Draw cached detections on every frame (smooth display) ──
             for det in last_detections:
                 score = det['combined_score']
                 scores = det.get('scores', {})
 
-                # Only draw when it's a real match — skip non-matches
-                if score < args.threshold:
-                    continue
-
-                # Face box (green)
+                # Face box (green for match, dark red for non-match)
                 if det.get('face_box'):
                     fx1, fy1, fx2, fy2 = map(int, det['face_box'])
-                    cv2.rectangle(display, (fx1, fy1), (fx2, fy2), (0, 255, 0), 3)
+                    fc = (0, 255, 0) if score >= args.threshold else (0, 0, 150)
+                    cv2.rectangle(display, (fx1, fy1), (fx2, fy2), fc, 3 if score >= args.threshold else 1)
 
-                # Body box (cyan)
+                # Body box (cyan for match, gray for non-match)
                 if det.get('body_box'):
                     bx1, by1, bx2, by2 = map(int, det['body_box'])
-                    cv2.rectangle(display, (bx1, by1), (bx2, by2), (255, 200, 0), 2)
+                    bc = (255, 200, 0) if score >= args.threshold else (150, 150, 150)
+                    cv2.rectangle(display, (bx1, by1), (bx2, by2), bc, 2 if score >= args.threshold else 1)
 
                 # Score labels
                 anchor = det.get('face_box') or det.get('body_box')
                 if anchor:
                     ax, ay = int(anchor[0]), int(anchor[1])
                     label = f"Score: {score:.2f}"
-                    lc = (0, 255, 0) if score >= args.threshold else (100, 100, 100)
+                    lc = (0, 255, 0) if score >= args.threshold else (0, 0, 200)
                     cv2.putText(display, label, (ax, max(18, ay - 10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, lc, 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7 if score >= args.threshold else 0.5, lc, 2)
                     y_off = max(18, ay - 32)
                     for k, v in scores.items():
                         cv2.putText(display, f"{k}:{v:.2f}", (ax, y_off),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200) if score >= args.threshold else (120, 120, 120), 1)
                         y_off -= 16
 
                 # ── FIRST MATCH → save, beep, stop ──

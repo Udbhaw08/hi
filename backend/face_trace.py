@@ -28,14 +28,17 @@ try:
     from .face_engine import detect_and_embed as _insightface_detect  # type: ignore
 except Exception:
     _insightface_detect = None
+
 try:
     from .face_utils import detect_faces as _fallback_face_detect  # type: ignore
 except Exception:
-    from face_utils import detect_faces as _fallback_face_detect
+    _fallback_face_detect = None
+
 try:
     from .recognition_utils import compute_embedding as _arcface_embedding  # type: ignore
 except Exception:
-    from recognition_utils import compute_embedding as _arcface_embedding
+    _arcface_embedding = None
+
 try:
     from .util import camera_manager  # type: ignore
     from .config import CAMERA_SOURCES  # type: ignore
@@ -45,7 +48,9 @@ except ImportError:
 
 # ---------- Paths & tunables ----------
 _BASE_DIR = os.path.dirname(__file__)
-_OSNET_PATH = os.path.join(_BASE_DIR, 'models', 'osnet_x1_0_msmt17.onnx')
+_OSNET_PATH    = os.path.join(_BASE_DIR, 'models', 'osnet_x1_0_msmt17.onnx')
+_SCRFD_PATH    = os.path.join(_BASE_DIR, 'models', 'scrfd_500m_bnkps.onnx')
+_GLINTR100_PATH= os.path.join(_BASE_DIR, 'models', 'glintr100.onnx')
 
 # Combined‑score weights (must sum to 1.0 internally — renormalised if
 # some modalities are unavailable for a given detection)
@@ -69,7 +74,7 @@ REQUIRE_FACE = os.getenv('FT_REQUIRE_FACE', '1') == '1'
 _PROVIDERS = ['CPUExecutionProvider']
 try:
     _av = ort.get_available_providers()
-    for _cand in ('CUDAExecutionProvider', 'DmlExecutionProvider'):
+    for _cand in ('DmlExecutionProvider', 'CUDAExecutionProvider'):
         if _cand in _av:
             _PROVIDERS = [_cand, 'CPUExecutionProvider']
             break
@@ -79,6 +84,131 @@ except Exception:
 # OpenCV HOG full‑body person detector (supplementary)
 _hog = cv2.HOGDescriptor()
 _hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Self-contained SCRFD + GlintR100 face detector/embedder
+#  Uses only the local .onnx files — no insightface package required
+# ═══════════════════════════════════════════════════════════════════
+class _LocalFaceEncoder:
+    """SCRFD face detector + GlintR100 ArcFace embedder, loaded from local ONNX."""
+
+    def __init__(self):
+        self._det_session: ort.InferenceSession | None = None
+        self._emb_session: ort.InferenceSession | None = None
+        self._loaded = False
+
+    def _load(self):
+        if self._loaded:
+            return
+        try:
+            so = ort.SessionOptions()
+            so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            # SCRFD on CPU (dynamic shapes crash DML)
+            if os.path.exists(_SCRFD_PATH):
+                self._det_session = ort.InferenceSession(
+                    _SCRFD_PATH, providers=['CPUExecutionProvider'], sess_options=so)
+                logger.info("SCRFD loaded from %s", _SCRFD_PATH)
+            # GlintR100 can run on GPU
+            if os.path.exists(_GLINTR100_PATH):
+                self._emb_session = ort.InferenceSession(
+                    _GLINTR100_PATH, providers=_PROVIDERS, sess_options=so)
+                logger.info("GlintR100 loaded from %s", _GLINTR100_PATH)
+            self._loaded = True
+        except Exception as exc:
+            logger.error("LocalFaceEncoder load failed: %s", exc)
+
+    # ── SCRFD detection ──────────────────────────────────────────────
+    def _scrfd_detect(self, bgr: np.ndarray):
+        """Return list of (x1,y1,x2,y2, score) using InsightFace's reliable parser to avoid decoding bugs."""
+        if not hasattr(self, '_if_det'):
+            import glob
+            try:
+                from insightface.model_zoo import model_zoo
+            except ImportError:
+                return []
+            
+            p = os.path.expanduser('~/.insightface/models/antelopev2/scrfd_10g_bnkps.onnx')
+            if not os.path.exists(p):
+                p = os.path.expanduser('~/.insightface/models/antelopev2/scrfd_500m_bnkps.onnx')
+            if not os.path.exists(p):
+                # Fallback to current directory
+                p = _SCRFD_PATH
+                
+            if not os.path.exists(p):
+                return []
+            try:
+                self._if_det = model_zoo.get_model(p, providers=['CPUExecutionProvider'])
+                self._if_det.prepare(ctx_id=0, input_size=(640,640))
+            except Exception as exc:
+                logger.error("Failed to load SCRFD via insightface: %s", exc)
+                return []
+
+        try:
+            h0, w0 = bgr.shape[:2]
+            bboxes, kpss = self._if_det.detect(bgr)
+            faces = []
+            if bboxes is not None:
+                for b in bboxes:
+                    if len(b) >= 5 and b[4] < 0.5:
+                        continue
+                    x1, y1, x2, y2 = int(b[0]), int(b[1]), int(b[2]), int(b[3])
+                    x1 = max(0, min(x1, w0)); x2 = max(0, min(x2, w0))
+                    y1 = max(0, min(y1, h0)); y2 = max(0, min(y2, h0))
+                    sc = float(b[4]) if len(b) >= 5 else 1.0
+                    if (x2 - x1) >= 20 and (y2 - y1) >= 20:
+                        faces.append((x1, y1, x2, y2, sc))
+            # sort by score descending
+            faces.sort(key=lambda f: f[4], reverse=True)
+            return faces
+        except Exception as exc:
+            logger.debug("SCRFD detect error: %s", exc)
+            return []
+
+    # ── GlintR100 embedding ──────────────────────────────────────────
+    def _glintr100_embed(self, face_crop_bgr: np.ndarray):
+        """Return 512-dim normalised embedding from face crop."""
+        if self._emb_session is None or face_crop_bgr is None or face_crop_bgr.size == 0:
+            return None
+        try:
+            img = cv2.resize(face_crop_bgr, (112, 112))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
+            img = (img - 127.5) / 128.0
+            blob = img.transpose(2, 0, 1)[None]  # (1,3,112,112)
+            inp_name = self._emb_session.get_inputs()[0].name
+            out = self._emb_session.run(None, {inp_name: blob})[0]
+            emb = np.squeeze(out).astype(np.float32)
+            n = np.linalg.norm(emb)
+            return (emb / n) if n > 0 else None
+        except Exception as exc:
+            logger.debug("GlintR100 embed error: %s", exc)
+            return None
+
+    # ── Public API ───────────────────────────────────────────────────
+    def detect_and_embed(self, bgr: np.ndarray):
+        """Return list of ((x1,y1,x2,y2), embedding, det_score)."""
+        self._load()
+        if self._det_session is None:
+            return []
+        results = []
+        for (x1, y1, x2, y2, sc) in self._scrfd_detect(bgr):
+            crop = bgr[y1:y2, x1:x2]
+            emb = self._glintr100_embed(crop)
+            if emb is not None:
+                results.append(((x1, y1, x2, y2), emb, sc))
+        return results
+
+    def embed_crop(self, face_crop_bgr: np.ndarray):
+        """Embed a pre-cropped face region."""
+        self._load()
+        return self._glintr100_embed(face_crop_bgr)
+
+    def is_ready(self):
+        """Return True if at least the embedder is loaded."""
+        self._load()
+        return self._emb_session is not None
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -246,6 +376,7 @@ class FaceTracer:
     def __init__(self):
         self.osnet = _OSNetEncoder()
         self.clothing = _ClothingAnalyser()
+        self._local_face = _LocalFaceEncoder()   # SCRFD + GlintR100 — no extra packages
 
         # Reference features
         self.ref_face_emb: np.ndarray | None = None
@@ -296,8 +427,19 @@ class FaceTracer:
         h, w = img.shape[:2]
         face_box = None
 
-        # ── Face embedding ──
-        if _insightface_detect is not None:
+        # ── Face embedding — Local SCRFD+GlintR100 (primary, no extra packages) ──
+        try:
+            faces = self._local_face.detect_and_embed(img)
+            if faces:
+                (fx1, fy1, fx2, fy2), emb, score = faces[0]
+                self.ref_face_emb = emb
+                face_box = (fx1, fy1, fx2, fy2)
+                logger.info("Ref face embedding (Local SCRFD+GlintR100) det_score=%.3f", score)
+        except Exception as exc:
+            logger.warning("Local face encoder ref failed: %s", exc)
+
+        # ── InsightFace (secondary, if package is installed) ──
+        if self.ref_face_emb is None and _insightface_detect is not None:
             try:
                 faces = _insightface_detect(img)
                 if faces:
@@ -308,8 +450,8 @@ class FaceTracer:
             except Exception as exc:
                 logger.warning("InsightFace ref failed: %s", exc)
 
-        if self.ref_face_emb is None:
-            # ArcFace fallback
+        # ── ArcFace via RetinaFace (tertiary) ──
+        if self.ref_face_emb is None and _arcface_embedding is not None and _fallback_face_detect is not None:
             try:
                 boxes = _fallback_face_detect(img)
                 if boxes:
@@ -318,9 +460,13 @@ class FaceTracer:
                     if crop.size > 0:
                         self.ref_face_emb = _arcface_embedding(crop)
                         face_box = (x1, y1, x2, y2)
-                        logger.info("Ref face embedding (ArcFace fallback)")
+                        logger.info("Ref face embedding (ArcFace/RetinaFace fallback)")
             except Exception as exc:
                 logger.warning("ArcFace ref failed: %s", exc)
+
+        if self.ref_face_emb is None:
+            logger.warning("All face detectors failed on reference image.")
+
 
         # ── Body region ──
         person_crop = img   # default: full image
@@ -360,6 +506,18 @@ class FaceTracer:
             self.status = "error"
             return False, "Could not extract any feature from the reference image"
 
+        # Critical safety check: if REQUIRE_FACE is on but we could not extract
+        # a face from the reference image, refuse to start. Without a face anchor,
+        # body/clothing alone will match random objects (plug sockets, chairs, etc.)
+        if REQUIRE_FACE and self.ref_face_emb is None:
+            self.status = "error"
+            return (
+                False,
+                "[SAFETY] No face detected in the reference image, but REQUIRE_FACE=1. "
+                "Please use a clear frontal photo where a face is visible, "
+                "or set FT_REQUIRE_FACE=0 to allow body-only matching (not recommended)."
+            )
+
         self.status = "ready"
         return True, f"Features extracted: {', '.join(available)}"
 
@@ -378,10 +536,14 @@ class FaceTracer:
             return max(0.0, float(np.dot(a / na, b / nb)))
 
         # ── REQUIRE_FACE guard ──────────────────────────────────────────
-        # If we have a reference face embedding but no face was detected in
-        # this frame, reject immediately — body/clothing alone is unreliable
-        # and will match any person in similar clothes (false positive).
+        # Case 1: We have a ref face but no face detected in this frame.
         if REQUIRE_FACE and self.ref_face_emb is not None and face_emb is None:
+            return 0.0, {}
+        # Case 2 (loophole fix): No face was ever extracted from the reference
+        # image (face detector failed on ref). Without a face anchor we CANNOT
+        # trust body/clothing alone — they will match any HOG blob (plug, chair,
+        # wall…). Block the match entirely.
+        if REQUIRE_FACE and self.ref_face_emb is None:
             return 0.0, {}
         # ───────────────────────────────────────────────────────────────
 
@@ -405,6 +567,11 @@ class FaceTracer:
 
         tw = sum(weights.values())
         combined = sum(scores[k] * weights[k] for k in scores) / tw if tw else 0.0
+
+        # Prevent clothing/body from dragging down a strong biometric face match
+        if 'face' in scores:
+            combined = max(combined, scores['face'])
+
         return combined, scores
 
     # -----------------------------------------------------------
@@ -418,32 +585,24 @@ class FaceTracer:
         h, w = frame.shape[:2]
         detections = []
 
-        # ─ Detect faces ─
+        # ─ Detect faces — Local SCRFD+GlintR100 (primary) ─
         faces_raw: list[dict] = []
-        if _insightface_detect is not None:
-            try:
-                for (fx1, fy1, fx2, fy2), emb, sc in (_insightface_detect(frame) or []):
-                    if (fx2 - fx1) < 10 or (fy2 - fy1) < 10:
-                        continue
-                    faces_raw.append({'box': (int(fx1), int(fy1), int(fx2), int(fy2)),
-                                      'emb': emb, 'det': sc})
-            except Exception:
-                pass
+        # ─ Detect faces — Local SCRFD+GlintR100 (primary GPU/CPU split) ─
+        faces_raw: list[dict] = []
+        try:
+            for (fx1, fy1, fx2, fy2), emb, sc in (self._local_face.detect_and_embed(frame) or []):
+                if (fx2 - fx1) < 10 or (fy2 - fy1) < 10:
+                    continue
+                faces_raw.append({'box': (int(fx1), int(fy1), int(fx2), int(fy2)),
+                                  'emb': emb, 'det': sc})
+        except Exception:
+            pass
 
-        if not faces_raw:
-            try:
-                for bx in (_fallback_face_detect(frame) or []):
-                    x1, y1, x2, y2 = int(bx[0]), int(bx[1]), int(bx[2]), int(bx[3])
-                    if (x2 - x1) < 10 or (y2 - y1) < 10:
-                        continue
-                    crop = frame[max(0, y1):min(h - 1, y2), max(0, x1):min(w - 1, x2)]
-                    emb = _arcface_embedding(crop) if crop.size > 0 else None
-                    faces_raw.append({'box': (x1, y1, x2, y2), 'emb': emb, 'det': 0.5})
-            except Exception:
-                pass
-
-        # ─ HOG person detections (full‑body) ─
-        hog_boxes = _detect_persons_hog(frame)
+        # ─ HOG person detections (supplementary body boxes only) ─
+        # HOG is extremely CPU intensive. We only run it if REQUIRE_FACE is False to find faceless bodies.
+        hog_boxes = []
+        if not REQUIRE_FACE:
+            hog_boxes = _detect_persons_hog(frame)
 
         # ─ Build multi‑modal detections from faces ─
         for fd in faces_raw:
@@ -452,7 +611,7 @@ class FaceTracer:
 
             body_box = _estimate_body_from_face(fd['box'], frame.shape)
 
-            # Prefer a matching HOG box if available
+            # Prefer a matching HOG box if available (refines body crop)
             if body_box and hog_boxes:
                 best_iou, best_hog = 0, None
                 for hb in hog_boxes:
@@ -480,36 +639,37 @@ class FaceTracer:
                 'det_score': fd['det'],
             })
 
-        # ─ Process HOG‑only persons (no face visible) ─
-        used_hog = set()
-        for fd in faces_raw:
-            body_box = _estimate_body_from_face(fd['box'], frame.shape)
-            if body_box and hog_boxes:
-                for i, hb in enumerate(hog_boxes):
-                    if _iou(body_box, hb) > 0.15:
-                        used_hog.add(i)
-        for i, hb in enumerate(hog_boxes):
-            if i in used_hog:
-                continue
-            bx1, by1, bx2, by2 = hb
-            bx1, by1 = max(0, bx1), max(0, by1)
-            bx2, by2 = min(w - 1, bx2), min(h - 1, by2)
-            if bx2 <= bx1 or by2 <= by1:
-                continue
-            pc = frame[by1:by2, bx1:bx2]
-            if pc.size == 0:
-                continue
-            body_emb = self.osnet.encode(pc)
-            clothing_feat = self.clothing.extract(pc)
-            combined, indiv = self._score(body_emb=body_emb, clothing_feat=clothing_feat)
-            if combined > 0:
-                detections.append({
-                    'face_box': None,
-                    'body_box': [bx1, by1, bx2, by2],
-                    'combined_score': combined,
-                    'scores': indiv,
-                    'det_score': 0.0,
-                })
+        # ─ HOG‑only persons (no face) — SKIPPED when REQUIRE_FACE=True ─
+        if not REQUIRE_FACE:
+            used_hog = set()
+            for fd in faces_raw:
+                body_box = _estimate_body_from_face(fd['box'], frame.shape)
+                if body_box and hog_boxes:
+                    for i, hb in enumerate(hog_boxes):
+                        if _iou(body_box, hb) > 0.15:
+                            used_hog.add(i)
+            for i, hb in enumerate(hog_boxes):
+                if i in used_hog:
+                    continue
+                bx1, by1, bx2, by2 = hb
+                bx1, by1 = max(0, bx1), max(0, by1)
+                bx2, by2 = min(w - 1, bx2), min(h - 1, by2)
+                if bx2 <= bx1 or by2 <= by1:
+                    continue
+                pc = frame[by1:by2, bx1:bx2]
+                if pc.size == 0:
+                    continue
+                body_emb = self.osnet.encode(pc)
+                clothing_feat = self.clothing.extract(pc)
+                combined, indiv = self._score(body_emb=body_emb, clothing_feat=clothing_feat)
+                if combined > 0:
+                    detections.append({
+                        'face_box': None,
+                        'body_box': [bx1, by1, bx2, by2],
+                        'combined_score': combined,
+                        'scores': indiv,
+                        'det_score': 0.0,
+                    })
 
         detections.sort(key=lambda d: d['combined_score'], reverse=True)
         return detections
@@ -553,10 +713,6 @@ class FaceTracer:
                     continue
 
                 fc += 1
-                if fc % 3 != 0:          # process every 3rd frame for speed
-                    time.sleep(0.01)
-                    continue
-
                 dets = self.process_frame(frame)
                 for det in dets:
                     score = det['combined_score']
