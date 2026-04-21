@@ -8,6 +8,18 @@ import glob
 from .db import person_collection
 from .config import MATCH_THRESHOLD
 
+# Provider auto-detection: prefer CUDA > DirectML > CPU
+_PROVIDERS = ['CPUExecutionProvider']
+try:
+    _av = ort.get_available_providers()
+    for _cand in ('CUDAExecutionProvider', 'DmlExecutionProvider'):
+        if _cand in _av:
+            _PROVIDERS = [_cand, 'CPUExecutionProvider']
+            break
+except Exception:
+    pass
+print(f"[recognition_utils] Using provider: {_PROVIDERS[0]}")
+
 _BASE_DIR = os.path.dirname(__file__)
 _ARCFACE_PRI = os.path.join(_BASE_DIR, 'models', 'glintr100.onnx')  # Using available glintr100.onnx model
 _ARCFACE_FALLBACK = os.path.join(_BASE_DIR, 'models', 'best.onnx')  # Using available best.onnx as fallback
@@ -35,7 +47,7 @@ LOCAL_IMG_THRESHOLD = float(os.getenv('LOCAL_IMG_THRESHOLD', '0.40'))
 
 def _load_session(path: str):
     global _model_path_loaded
-    sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+    sess = ort.InferenceSession(path, providers=_PROVIDERS)
     _model_path_loaded = path
     return sess
 

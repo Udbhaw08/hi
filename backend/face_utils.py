@@ -9,7 +9,19 @@ _MODEL_PATH = os.path.join(_BASE_DIR, 'models', 'retinaface_mobilenet0.25.onnx')
 if not os.path.exists(_MODEL_PATH):
     raise FileNotFoundError(f"RetinaFace model not found at {_MODEL_PATH}")
 
-face_session = ort.InferenceSession(_MODEL_PATH, providers=["CPUExecutionProvider"])
+# Provider auto-detection: prefer CUDA > DirectML > CPU
+_providers = ['CPUExecutionProvider']
+try:
+    _av = ort.get_available_providers()
+    for _cand in ('CUDAExecutionProvider', 'DmlExecutionProvider'):
+        if _cand in _av:
+            _providers = [_cand, 'CPUExecutionProvider']
+            break
+except Exception:
+    pass
+print(f"[face_utils] Using provider: {_providers[0]}")
+
+face_session = ort.InferenceSession(_MODEL_PATH, providers=_providers)
 input_name = face_session.get_inputs()[0].name
 
 # Optional OpenCV DNN SSD (deploy.prototxt + res10_300x300_ssd_iter_140000.caffemodel) if user downloads them into models/

@@ -27,6 +27,15 @@ except ImportError as e:
     from realtime_pipeline import pipeline_manager, get_events_snapshot, get_report_snapshot
     from db import alerts_collection
 
+# Face Trace module (multi-modal person search)
+try:
+    try:
+        from .face_trace import face_tracer  # type: ignore
+    except ImportError:
+        from face_trace import face_tracer
+except Exception:
+    face_tracer = None
+
 # Chatbot modules removed
 
 # Optional insightface engine (do NOT wrap core imports above)
@@ -813,6 +822,99 @@ async def get_pipeline_render(cam_id: int):
         raise HTTPException(status_code=500, detail=str(e))
     
 # Chatbot API endpoints removed
+
+# ═══════════════════════════════════════════════════════════════════
+#  Face Trace — Multi-Modal Person Search
+# ═══════════════════════════════════════════════════════════════════
+
+@app.post('/face_trace/reference')
+async def face_trace_upload_reference(
+    username: str = Form(...),
+    password: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """Upload a reference image of the target person.
+    The system extracts face, body, and clothing features."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+
+    # Save temp file and extract features
+    os.makedirs('./data/face_trace_results', exist_ok=True)
+    ref_path = os.path.join('./data/face_trace_results', '_reference.jpg')
+    with open(ref_path, 'wb') as f:
+        shutil.copyfileobj(file.file, f)
+
+    ok, msg = face_tracer.set_reference(ref_path)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {'status': 'ok', 'message': msg, 'features': face_tracer.get_status()['features']}
+
+
+@app.post('/face_trace/start')
+async def face_trace_start(
+    username: str = Form(...),
+    password: str = Form(...),
+    cam_id: int = Form(0),
+    max_seconds: int = Form(300)
+):
+    """Start searching for the reference person on a camera feed."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+
+    ok, msg = face_tracer.start_search(cam_id=cam_id, max_seconds=max_seconds)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {'status': 'ok', 'message': msg}
+
+
+@app.post('/face_trace/stop')
+async def face_trace_stop(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    """Stop the current person search."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    face_tracer.stop_search()
+    return {'status': 'stopped'}
+
+
+@app.get('/face_trace/status')
+async def face_trace_status(username: str, password: str):
+    """Poll search status, elapsed time, and best match score."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    return face_tracer.get_status()
+
+
+@app.get('/face_trace/results')
+async def face_trace_results(username: str, password: str):
+    """Get all match results with scores and saved image paths."""
+    if not verify_admin(username, password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    return face_tracer.get_results()
+
+
+@app.get('/face_trace/image/{filename}')
+async def face_trace_serve_image(filename: str):
+    """Serve a saved match image (annotated or clean)."""
+    if face_tracer is None:
+        raise HTTPException(status_code=500, detail="Face Trace module not available")
+    path = os.path.join(face_tracer.output_dir, filename)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(path)
+
 
 if __name__ == "__main__":
     import uvicorn

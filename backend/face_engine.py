@@ -15,18 +15,24 @@ except Exception:
     _DET_SIZE = (512,512)
 _FORCE_CPU = os.getenv('FORCE_CPU','0')=='1'
 
-# Provider list (prefer CUDA, then DirectML, fallback CPU)
+# Provider list for InsightFace (SCRFD + GlintR100)
+# ⚠️  SCRFD uses dynamic input shapes ([1, 3, '?', '?']) which cause DmlExecutionProvider
+#     to crash with 'Reshape_223 / The parameter is incorrect' on every frame (face=0.00).
+#     Force CPU for InsightFace; all other models (OSNet, standalone GlintR100, YOLO,
+#     BlazePose, RetinaFace) still run on DML/CUDA via their own provider selection.
+_USE_GPU_FOR_INSIGHTFACE = os.getenv('INSIGHTFACE_USE_GPU', '0') == '1'
 _providers = ['CPUExecutionProvider']
-try:
-    import onnxruntime as ort  # noqa
-    av = ort.get_available_providers()
-    if not _FORCE_CPU:
-        for cand in ('CUDAExecutionProvider','DmlExecutionProvider'):
+if not _FORCE_CPU and _USE_GPU_FOR_INSIGHTFACE:
+    try:
+        import onnxruntime as ort  # noqa
+        av = ort.get_available_providers()
+        for cand in ('CUDAExecutionProvider', 'DmlExecutionProvider'):
             if cand in av:
-                _providers = [cand,'CPUExecutionProvider']
+                _providers = [cand, 'CPUExecutionProvider']
                 break
-except Exception:
-    pass
+    except Exception:
+        pass
+print(f"[face_engine] InsightFace provider: {_providers[0]} (set INSIGHTFACE_USE_GPU=1 to override)")
 
 @lru_cache(maxsize=1)
 def _get_app():

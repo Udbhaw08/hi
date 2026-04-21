@@ -10,7 +10,18 @@ _MODEL_PATH = os.path.join(_BASE_DIR, 'models', 'arcface_r100.onnx')
 if not os.path.exists(_MODEL_PATH):
     raise FileNotFoundError(f"ArcFace model not found at {_MODEL_PATH}")
 
-session = ort.InferenceSession(_MODEL_PATH, providers=["CPUExecutionProvider"])
+# Provider auto-detection: prefer CUDA > DirectML > CPU
+_providers = ['CPUExecutionProvider']
+try:
+    _av = ort.get_available_providers()
+    for _cand in ('CUDAExecutionProvider', 'DmlExecutionProvider'):
+        if _cand in _av:
+            _providers = [_cand, 'CPUExecutionProvider']
+            break
+except Exception:
+    pass
+
+session = ort.InferenceSession(_MODEL_PATH, providers=_providers)
 input_name = session.get_inputs()[0].name
 
 for person in person_collection.find():
